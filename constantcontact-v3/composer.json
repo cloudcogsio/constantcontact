@@ -1,0 +1,22 @@
+{
+	"keywords" : [
+		"cloudcogs",
+		"cloudcogs.io",
+		"constantcontact",
+		"api",
+		"v3"
+	],
+	"autoload" : {
+		"psr-4" : {
+			"Cloudcogs\\ConstantContact\\" : "src"
+		}
+	},
+	"name" : "cloudcogsio/constantcontact-v3",
+	"description" : "Constant Contact v3 PHP SDK",
+	"license" : "GPL-3.0-or-later",
+	"require" : {
+		"php" : ">=7.3",
+		"guzzlehttp/guzzle" : "7.3.0",
+		"willdurand/hateoas" : "3.7.0"
+	}
+}

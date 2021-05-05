@@ -1,0 +1,6 @@
+/vendor/
+/.access_token
+/.authorization_code
+/.buildpath
+/.project
+/.settings/
