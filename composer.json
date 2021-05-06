@@ -11,7 +11,7 @@
 			"Cloudcogs\\ConstantContact\\" : "src"
 		}
 	},
-	"name" : "cloudcogsio/constantcontact-v3",
+	"name" : "cloudcogsio/constantcontact",
 	"description" : "Constant Contact v3 PHP SDK",
 	"license" : "GPL-3.0-or-later",
 	"require" : {
