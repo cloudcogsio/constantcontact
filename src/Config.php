@@ -7,7 +7,12 @@ class Config
 {
     protected $params = [];
 
-    public function __construct($client_id, $client_secret, $redirect_uri = 'https://localhost', array $scope = [Constants::SCOPE_CONTACT_DATA], $grant_type = 'authorization_code')
+    public function __construct(
+        $client_id,
+        $client_secret,
+        $redirect_uri = 'https://localhost',
+        array $scope = [Constants::SCOPE_CONTACT_DATA, Constants::SCOPE_OFFLINE_ACCESS], 
+        $grant_type = 'authorization_code')
     {
         $this->params[Constants::PARAM_CLIENT_ID] = $client_id;
         $this->params[Constants::PARAM_CLIENT_SECRET] = $client_secret;

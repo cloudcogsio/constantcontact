@@ -7,6 +7,7 @@ class Constants
     const SCOPE_ACCOUNT_UPDATE = 'account_update';
     const SCOPE_CONTACT_DATA = 'contact_data';
     const SCOPE_CAMPAIGN_DATA = 'campaign_data';
+    const SCOPE_OFFLINE_ACCESS = 'offline_access';
 
     const PARAM_CLIENT_ID = 'client_id';
     const PARAM_CLIENT_SECRET = 'client_secret';

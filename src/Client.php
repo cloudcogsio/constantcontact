@@ -12,8 +12,8 @@ use Cloudcogs\ConstantContact\Api\Contacts;
 
 class Client
 {
-    const BASEURL_AUTH = "https://api.cc.email/v3/idfed";
-    const BASEURL_OAUTH2 = "https://idfed.constantcontact.com/as/token.oauth2";
+    const BASEURL_AUTH = "https://authz.constantcontact.com/oauth2/default/v1/authorize";
+    const BASEURL_OAUTH2 = "https://authz.constantcontact.com/oauth2/default/v1/token";
     const BASEURL_API = "https://api.cc.email/v3";
 
     protected $Config;
@@ -48,7 +48,8 @@ class Client
      */
     public function getAuthorizationURL() : string
     {
-        return self::BASEURL_AUTH . "?client_id=" . $this->Config->getClientId(). "&scope=" . $this->Config->getScopeAsString(). "&response_type=code" . "&redirect_uri=" . $this->Config->getRedirectURI();
+        $state = microtime(true);
+        return self::BASEURL_AUTH . "?client_id=" . $this->Config->getClientId(). "&scope=" . $this->Config->getScopeAsString(). "&response_type=code" . "&state=$state&redirect_uri=" . $this->Config->getRedirectURI();
     }
 
     /**
