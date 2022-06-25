@@ -17,10 +17,13 @@
  *
  * You may now execute the demo services.
  */
+
+chdir(dirname(realpath(__DIR__)));
+
 set_time_limit(0);
 ini_set('max_execution_time', 0);
 
-require_once '../vendor/autoload.php';
+require_once 'vendor/autoload.php';
 
 use Cloudcogs\ConstantContact\Client;
 use Cloudcogs\ConstantContact\Config;
@@ -75,11 +78,11 @@ if(count($argv) > 1){
 
         while(true)
         {
-            if (file_exists('.authorization_code'))
+            if (file_exists(Constants::AUTHORIZATION_CODE_FILE))
             break;
         }
 
-        $authCode = file_get_contents('.authorization_code');
+        $authCode = file_get_contents(Constants::AUTHORIZATION_CODE_FILE);
         if($Client->getAccessToken($authCode))
         {
             die('Done');

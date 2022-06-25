@@ -2,10 +2,12 @@
 namespace Cloudcogs\ConstantContact;
 
 use Cloudcogs\ConstantContact\Exception\DuplicateScopeException;
+use Cloudcogs\ConstantContact\Exception\JWKNotFound;
 
 class Config
 {
     protected $params = [];
+    protected $jwk_file = "data/public.jwk";
 
     public function __construct(
         $client_id,
@@ -68,5 +70,12 @@ class Config
         }
 
         throw new DuplicateScopeException($scope);
+    }
+
+    public function getJWKs() : string
+    {
+        if (!file_exists($this->jwk_file)) throw new JWKNotFound();
+
+        return file_get_contents($this->jwk_file);
     }
 }

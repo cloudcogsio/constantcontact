@@ -10,10 +10,14 @@
  *
  * @see demo_authorize.php for initiating the OAuth process once this file is running.
  */
+chdir(dirname(realpath(__DIR__)));
+
+require_once 'vendor/autoload.php';
+
 if(isset($_GET['code']))
 {
     $authCode = $_GET['code'];
-    $ac = fopen(".authorization_code", "w");
+    $ac = fopen(\Cloudcogs\ConstantContact\Constants::AUTHORIZATION_CODE_FILE, "w");
     if ($ac)
     {
         fwrite($ac, $authCode);

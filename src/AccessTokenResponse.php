@@ -27,4 +27,19 @@ class AccessTokenResponse
     {
         return $this->ResultData->token_type;
     }
+
+    public function getExpiresIn() : int
+    {
+        return intval($this->ResultData->expires_in);
+    }
+
+    public function getScope(): string
+    {
+        return $this->ResultData->scope;
+    }
+
+    public function getIdToken() : string
+    {
+        return $this->ResultData->id_token;
+    }
 }

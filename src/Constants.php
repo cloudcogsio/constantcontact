@@ -14,4 +14,7 @@ class Constants
     const PARAM_REDIRECT_URI = 'redirect_uri';
     const PARAM_GRANT_TYPE = 'grant_type';
     const PARAM_SCOPE = 'scope';
+
+    const ACCESS_TOKEN_FILE = "data/.access_token";
+    const AUTHORIZATION_CODE_FILE = "data/.authorization_code";
 }

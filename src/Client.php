@@ -9,6 +9,8 @@ use Cloudcogs\ConstantContact\Exception\CurlSetupException;
 use Cloudcogs\ConstantContact\Exception\AccessTokenResponseFileNotFound;
 use Cloudcogs\ConstantContact\Api\ContactLists;
 use Cloudcogs\ConstantContact\Api\Contacts;
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 
 class Client
 {
@@ -60,7 +62,7 @@ class Client
      *
      * @return \Cloudcogs\ConstantContact\AccessTokenResponse
      */
-    public function getAccessTokenResponseFromFile(string $file = ".access_token") : \Cloudcogs\ConstantContact\AccessTokenResponse
+    public function getAccessTokenResponseFromFile(string $file = Constants::ACCESS_TOKEN_FILE) : \Cloudcogs\ConstantContact\AccessTokenResponse
     {
         if (file_exists($file))
         {
@@ -87,7 +89,7 @@ class Client
      *
      * @return \Cloudcogs\ConstantContact\Client
      */
-    public function writeAccessTokenResponseToFile(string $file = ".access_token") : \Cloudcogs\ConstantContact\Client
+    public function writeAccessTokenResponseToFile(string $file = Constants::ACCESS_TOKEN_FILE, $decoded_token = null) : \Cloudcogs\ConstantContact\Client
     {
         if(!($this->AccessTokenResponse instanceof \Cloudcogs\ConstantContact\AccessTokenResponse))
         {
@@ -99,6 +101,16 @@ class Client
         {
             fwrite($ac, serialize($this->AccessTokenResponse));
             fclose($ac);
+        }
+
+        if (!is_null($decoded_token))
+        {
+            $acd = fopen($file."_decoded", "w");
+            if ($acd)
+            {
+                fwrite($acd, serialize($decoded_token));
+                fclose($acd);
+            }
         }
 
         return $this;
@@ -161,12 +173,35 @@ class Client
             curl_close($ch);
 
             $this->AccessTokenResponse = new AccessTokenResponse($result);
-            $this->writeAccessTokenResponseToFile();
+
+            $decoded_token = $this->validateAccessToken($this->AccessTokenResponse);
+
+            $this->writeAccessTokenResponseToFile(Constants::ACCESS_TOKEN_FILE, $decoded_token);
 
             return $this->AccessTokenResponse->getAccessToken();
         }
 
         throw new CurlSetupException();
+    }
+
+    /**
+     * @param AccessTokenResponse $AccessTokenResponse
+     * @return \stdClass
+     * @throws Exception\InvalidJwtException
+     * @throws Exception\JWKNotFound
+     */
+    protected function validateAccessToken(AccessTokenResponse $AccessTokenResponse)
+    {
+        $jwt = $AccessTokenResponse->getAccessToken();
+        $jwk = $this->Config->getJWKs();
+
+        $TokenData = JWT::decode($jwt, JWK::parseKeySet(json_decode($jwk, true)));
+
+        if ($TokenData->cid != $this->Config->getClientId()) throw new Cloudcogs\ConstantContact\Exception\InvalidJwtException("Invalid token client identifier");
+        if (is_null($TokenData->platform_user_id)) throw new Cloudcogs\ConstantContact\Exception\InvalidJwtException("Token is missing platform_user_id");
+        if ($TokenData->aud != self::BASEURL_API) throw new Cloudcogs\ConstantContact\Exception\InvalidJwtException("Invalid token audience claim");
+
+        return $TokenData;
     }
 
     /**
