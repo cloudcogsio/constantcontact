@@ -3,14 +3,16 @@
 namespace Cloudcogs\ConstantContact;
 
 use Cloudcogs;
-use Cloudcogs\ConstantContact\Exception\InvalidAccessTokenResult;
 use Cloudcogs\ConstantContact\Exception\AccessTokenNotDefined;
 use Cloudcogs\ConstantContact\Exception\CurlSetupException;
 use Cloudcogs\ConstantContact\Exception\AccessTokenResponseFileNotFound;
 use Cloudcogs\ConstantContact\Api\ContactLists;
 use Cloudcogs\ConstantContact\Api\Contacts;
+use Cloudcogs\ConstantContact\Exception\InvalidAuthorizationCode;
+use Cloudcogs\ConstantContact\Exception\InvalidRefreshToken;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
+use stdClass;
 
 class Client
 {
@@ -19,13 +21,15 @@ class Client
     const BASEURL_API = "https://api.cc.email/v3";
 
     protected $Config;
+
+    /** @var AccessTokenResponse */
     protected $AccessTokenResponse;
     protected $ContactLists;
     protected $Contacts;
 
     protected static $Instance;
 
-    public static function getInstance(\Cloudcogs\ConstantContact\Config $Config)
+    public static function getInstance(Config $Config): Client
     {
         if (!self::$Instance)
         {
@@ -42,10 +46,6 @@ class Client
 
     /**
      *
-     * @param string $clientId
-     * @param string $redirectURI
-     * @param array $scope
-     *
      * @return string
      */
     public function getAuthorizationURL() : string
@@ -57,19 +57,19 @@ class Client
     /**
      *
      * @param string $file
-     * @throws AccessTokenNotDefined
+     * @return AccessTokenResponse
      * @throws AccessTokenResponseFileNotFound
      *
-     * @return \Cloudcogs\ConstantContact\AccessTokenResponse
+     * @throws AccessTokenNotDefined
      */
-    public function getAccessTokenResponseFromFile(string $file = Constants::ACCESS_TOKEN_FILE) : \Cloudcogs\ConstantContact\AccessTokenResponse
+    public function getAccessTokenResponseFromFile(string $file = Constants::ACCESS_TOKEN_FILE) : AccessTokenResponse
     {
         if (file_exists($file))
         {
             $response = file_get_contents($file);
             $AccessTokenResponse = unserialize($response);
 
-            if(!($AccessTokenResponse instanceof \Cloudcogs\ConstantContact\AccessTokenResponse))
+            if(!($AccessTokenResponse instanceof AccessTokenResponse))
             {
                 throw new AccessTokenNotDefined();
             }
@@ -85,13 +85,14 @@ class Client
     /**
      *
      * @param string $file
-     * @throws AccessTokenNotDefined
+     * @param stdClass|null $decoded_token
+     * @return Client
      *
-     * @return \Cloudcogs\ConstantContact\Client
+     * @throws AccessTokenNotDefined
      */
-    public function writeAccessTokenResponseToFile(string $file = Constants::ACCESS_TOKEN_FILE, $decoded_token = null) : \Cloudcogs\ConstantContact\Client
+    public function writeAccessTokenResponseToFile(string $file = Constants::ACCESS_TOKEN_FILE, stdClass $decoded_token = null) : Client
     {
-        if(!($this->AccessTokenResponse instanceof \Cloudcogs\ConstantContact\AccessTokenResponse))
+        if(!($this->AccessTokenResponse instanceof AccessTokenResponse))
         {
             throw new AccessTokenNotDefined();
         }
@@ -117,16 +118,19 @@ class Client
     }
 
     /**
-     *
-     * @param string $authorization_code
-     * @throws \Cloudcogs\ConstantContact\Exception\InvalidAccessTokenResult
-     *
+     * @param string|null $authorization_code
      * @return string
+     * @throws AccessTokenNotDefined
+     * @throws CurlSetupException
+     * @throws Exception\InvalidAccessTokenResult
+     * @throws Exception\InvalidJwtException
+     * @throws Exception\JWKNotFound
+     * @throws InvalidAuthorizationCode
+     * @throws InvalidRefreshToken
      */
     public function getAccessToken(string $authorization_code = null) : string
     {
-        if($this->AccessTokenResponse instanceof \Cloudcogs\ConstantContact\AccessTokenResponse)
-        {
+        if($this->AccessTokenResponse instanceof AccessTokenResponse) {
             return $this->AccessTokenResponse->getAccessToken();
         }
 
@@ -142,7 +146,7 @@ class Client
      */
     public function getRefreshToken() : string
     {
-        if(!($this->AccessTokenResponse instanceof \Cloudcogs\ConstantContact\AccessTokenResponse))
+        if(!($this->AccessTokenResponse instanceof AccessTokenResponse))
         {
             throw new AccessTokenNotDefined();
         }
@@ -150,12 +154,33 @@ class Client
         return $this->AccessTokenResponse->getRefreshToken();
     }
 
-    public function refreshAccessToken()
+    /**
+     * @return string
+     * @throws AccessTokenNotDefined
+     * @throws CurlSetupException
+     * @throws Exception\InvalidAccessTokenResult
+     * @throws Exception\InvalidJwtException
+     * @throws Exception\JWKNotFound
+     * @throws InvalidAuthorizationCode
+     * @throws InvalidRefreshToken
+     */
+    public function refreshAccessToken() : string
     {
         $url = self::BASEURL_OAUTH2 . "?refresh_token=" . $this->getRefreshToken() . "&grant_type=refresh_token";
         return $this->getOrRefreshAccessToken($url);
     }
 
+    /**
+     * @param $url
+     * @return string
+     * @throws AccessTokenNotDefined
+     * @throws CurlSetupException
+     * @throws Exception\InvalidAccessTokenResult
+     * @throws Exception\InvalidJwtException
+     * @throws Exception\JWKNotFound
+     * @throws InvalidAuthorizationCode
+     * @throws InvalidRefreshToken
+     */
     protected function getOrRefreshAccessToken($url) : string
     {
         $ch = curl_init();
@@ -174,6 +199,11 @@ class Client
 
             $this->AccessTokenResponse = new AccessTokenResponse($result);
 
+            if ($this->AccessTokenResponse->isError())
+            {
+                $this->throwSpecificException();
+            }
+
             $decoded_token = $this->validateAccessToken($this->AccessTokenResponse);
 
             $this->writeAccessTokenResponseToFile(Constants::ACCESS_TOKEN_FILE, $decoded_token);
@@ -185,12 +215,32 @@ class Client
     }
 
     /**
+     * @return void
+     * @throws InvalidAuthorizationCode|InvalidRefreshToken
+     */
+    public function throwSpecificException()
+    {
+        if ($this->AccessTokenResponse->hasInvalidAuthorizationCode())
+        {
+            unlink(Constants::AUTHORIZATION_CODE_FILE);
+            throw new InvalidAuthorizationCode();
+        }
+
+        if ($this->AccessTokenResponse->hasInvalidRefreshToken())
+        {
+            unlink(Constants::ACCESS_TOKEN_FILE);
+            unlink(Constants::ACCESS_TOKEN_FILE."_decoded");
+            throw new InvalidRefreshToken();
+        }
+    }
+
+    /**
      * @param AccessTokenResponse $AccessTokenResponse
-     * @return \stdClass
+     * @return stdClass
      * @throws Exception\InvalidJwtException
      * @throws Exception\JWKNotFound
      */
-    protected function validateAccessToken(AccessTokenResponse $AccessTokenResponse)
+    protected function validateAccessToken(AccessTokenResponse $AccessTokenResponse): stdClass
     {
         $jwt = $AccessTokenResponse->getAccessToken();
         $jwk = $this->Config->getJWKs();
@@ -205,13 +255,11 @@ class Client
     }
 
     /**
-     *
      * @param string $scope
-     * @throws DuplicateScopeException
-     *
-     * @return \Cloudcogs\ConstantContact\Client
+     * @return $this
+     * @throws Exception\DuplicateScopeException
      */
-    public function addScope(string $scope) : \Cloudcogs\ConstantContact\Client
+    public function addScope(string $scope) : Client
     {
         $this->Config->addScope($scope);
 
@@ -220,9 +268,9 @@ class Client
 
     /**
      * Proxy to the ContactLists API
-     * @return \Cloudcogs\ConstantContact\Api\ContactLists
+     * @return ContactLists
      */
-    public function ContactLists() : \Cloudcogs\ConstantContact\Api\ContactLists
+    public function ContactLists() : ContactLists
     {
         if(!$this->ContactLists)
         {
@@ -234,9 +282,9 @@ class Client
 
     /**
      * Proxy to the Contacts API
-     * @return \Cloudcogs\ConstantContact\Api\Contacts
+     * @return Contacts
      */
-    public function Contacts() : \Cloudcogs\ConstantContact\Api\Contacts
+    public function Contacts() : Contacts
     {
         if (!$this->Contacts)
         {

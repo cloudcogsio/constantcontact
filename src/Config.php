@@ -23,7 +23,7 @@ class Config
         $this->params[Constants::PARAM_SCOPE] = $scope;
     }
 
-    public function getAuthCredentials()
+    public function getAuthCredentials(): string
     {
         return base64_encode($this->getClientId().":".$this->params[Constants::PARAM_CLIENT_SECRET]);
     }
@@ -57,11 +57,10 @@ class Config
      * Add a scope for authorization
      *
      * @param string $scope
+     * @return Config
      * @throws DuplicateScopeException
-     *
-     * @return \Cloudcogs\ConstantContact\Config
      */
-    public function addScope(string $scope) : \Cloudcogs\ConstantContact\Config
+    public function addScope(string $scope) : Config
     {
         if (!in_array($scope, $this->params[Constants::PARAM_SCOPE]))
         {
@@ -72,6 +71,10 @@ class Config
         throw new DuplicateScopeException($scope);
     }
 
+    /**
+     * @return string
+     * @throws JWKNotFound
+     */
     public function getJWKs() : string
     {
         if (!file_exists($this->jwk_file)) throw new JWKNotFound();

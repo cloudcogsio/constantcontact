@@ -18,7 +18,9 @@
 		"php" : ">=7.3",
 		"guzzlehttp/guzzle" : "7.3.0",
 		"willdurand/hateoas" : "3.7.0",
-		"firebase/php-jwt": "v6.1.2"
-	},
+		"firebase/php-jwt": "v6.1.2",
+      	"ext-curl": "*",
+      	"ext-json": "*"
+    },
 	"minimum-stability" : "dev"
 }
