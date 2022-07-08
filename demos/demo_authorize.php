@@ -85,6 +85,7 @@ if(count($argv) > 1){
         $authCode = file_get_contents(Constants::AUTHORIZATION_CODE_FILE);
         if($Client->getAccessToken($authCode))
         {
+            unlink(Constants::AUTHORIZATION_CODE_FILE);
             die('Done');
         }
         else

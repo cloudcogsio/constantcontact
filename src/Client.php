@@ -217,6 +217,7 @@ class Client
     /**
      * @return void
      * @throws InvalidAuthorizationCode|InvalidRefreshToken
+     * @throws \Exception
      */
     public function throwSpecificException()
     {
@@ -232,6 +233,8 @@ class Client
             unlink(Constants::ACCESS_TOKEN_FILE."_decoded");
             throw new InvalidRefreshToken();
         }
+
+        throw new \Exception("[".$this->AccessTokenResponse->getError()."] ".$this->AccessTokenResponse->getErrorDescription());
     }
 
     /**
