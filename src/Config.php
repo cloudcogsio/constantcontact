@@ -9,6 +9,8 @@ class Config
     protected $params = [];
     protected $jwk_file = "data/public.jwk";
 
+    protected $remote_keys = "https://identity.constantcontact.com/oauth2/aus1lm3ry9mF7x2Ja0h8/v1/keys";
+
     public function __construct(
         $client_id,
         $client_secret,
@@ -77,7 +79,13 @@ class Config
      */
     public function getJWKs() : string
     {
-        if (!file_exists($this->jwk_file)) throw new JWKNotFound();
+        if (!file_exists($this->jwk_file))
+        {
+            file_put_contents($this->jwk_file, file_get_contents($this->remote_keys));
+
+            if (!file_exists($this->jwk_file))
+                throw new JWKNotFound();
+        }
 
         return file_get_contents($this->jwk_file);
     }
