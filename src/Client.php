@@ -248,6 +248,7 @@ class Client
         $jwt = $AccessTokenResponse->getAccessToken();
         $jwk = $this->Config->getJWKs();
 
+        JWT::$leeway = 60;
         $TokenData = JWT::decode($jwt, JWK::parseKeySet(json_decode($jwk, true)));
 
         if ($TokenData->cid != $this->Config->getClientId()) throw new Cloudcogs\ConstantContact\Exception\InvalidJwtException("Invalid token client identifier");
